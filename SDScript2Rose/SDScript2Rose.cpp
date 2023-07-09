@@ -151,9 +151,9 @@ void codeLine(string line)
 
 		buff16 = buffVS[2].size();
 		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write size of path
-		fileOUT << buffVS[3]; // write path
+		fileOUT << buffVS[2]; // write path
 		
-		buff32 = timeToMiliSec(buffVS[4]);
+		buff32 = timeToMiliSec(buffVS[3]);
 		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
 		break;
 
@@ -190,83 +190,131 @@ void codeLine(string line)
 		break;
 			
 	case 0xCC06: // [PlaySe]
-		
+		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
 
+		buff8 = stoi(buffVS[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff8), sizeof(buff8)); // write volume? repeats?
+
+		buff16 = buffVS[2].size();
+		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write size of path
+		fileOUT << buffVS[2]; // write path
+
+		buff32 = timeToMiliSec(buffVS[3]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
 		break;
+
 	case 0xCC07: // [Next]
-		//noting
+		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
 		break;
+
 	case 0xCC08: // [PlayMovie]
-		fileIN >> sBuff; // path to movie
-		usBuff = sBuff.size();
-		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff)); //size of path
-		fileOUT << sBuff;
+		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
+		
+		buff16 = buffVS[1].size();
+		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write size of path
+		fileOUT << buffVS[1]; // write path
 
-		fileIN >> sBuff; // layer??? always 0???
-		usBuff = stoi(sBuff);
-		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff));
+		buff8 = stoi(buffVS[2]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff8), sizeof(buff8)); // write loop??? ero???
 
-		fileIN >> sBuff; // end time
-		iBuff = timeToMiliSec(sBuff);
-		fileOUT.write(reinterpret_cast<const char*>(&iBuff), sizeof(iBuff));
+		buff32 = timeToMiliSec(buffVS[3]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
 		break;
+
 	case 0xCC09: // [BlackFade]
-		fileIN >> sBuff; // IN/OUT
-		usBuff = fadeIO(sBuff);
-		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff));
+		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
+		
+		buff8 = (buffVS[1] == "OUT") ? 0 : 1;
+		fileOUT.write(reinterpret_cast<const char*>(&buff8), sizeof(buff8)); // write fade | [OUT] = [0] | [IN] = [1] 
 
-		fileIN >> sBuff; // end time
-		iBuff = timeToMiliSec(sBuff);
-		fileOUT.write(reinterpret_cast<const char*>(&iBuff), sizeof(iBuff));
+		buff32 = timeToMiliSec(buffVS[2]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
 		break;
+
 	case 0xCC0A: // [WhiteFade]
-		fileIN >> sBuff; // IN/OUT
-		usBuff = fadeIO(sBuff);
-		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff));
+		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
 
-		fileIN >> sBuff; // end time
-		iBuff = timeToMiliSec(sBuff);
-		fileOUT.write(reinterpret_cast<const char*>(&iBuff), sizeof(iBuff));
+		buff8 = (buffVS[1] == "OUT") ? 0 : 1;
+		fileOUT.write(reinterpret_cast<const char*>(&buff8), sizeof(buff8)); // write fade | [OUT] = [0] | [IN] = [1] 
+
+		buff32 = timeToMiliSec(buffVS[2]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
 		break;
+
 	case 0xCC0B: // [SetSELECT]
-		getline(fileIN, sBuff);
-		setSelect(sBuff);
-		break;
-	case 0xCC0C: // [EndBGM]???
-		fileIN >> sBuff; // path to bgm
-		usBuff = sBuff.size();
-		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff)); //size of path
-		fileOUT << sBuff;
+		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
 
-		fileIN >> sBuff; // end time
-		iBuff = timeToMiliSec(sBuff);
-		fileOUT.write(reinterpret_cast<const char*>(&iBuff), sizeof(iBuff));
-		break;
-	case 0xCC0D: // [EndRoll]??? - at the end of each episode only?
-		fileIN >> sBuff; // path to movie
-		usBuff = sBuff.size();
-		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff)); //size of path
-		fileOUT << sBuff;
+		buff16 = buffVS[1].size();
+		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write size of option 1
+		fileOUT << buffVS[1]; // write option 1
 
-		fileIN >> sBuff; // end time
-		iBuff = timeToMiliSec(sBuff);
-		fileOUT.write(reinterpret_cast<const char*>(&iBuff), sizeof(iBuff));
+		if (buffVS[2] == "null") {
+			buff16 = 0x0000;
+			fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write null [0x0000] if there is no option 2
+		}
+		else {
+			buff16 = buffVS[2].size();
+			fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write size of option 2
+			fileOUT << buffVS[2]; // write option 2
+		}
+		
+		buff32 = timeToMiliSec(buffVS[3]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
 		break;
-	case 0xCC0E: // [MoveSom] //Maybe it will be useful for censorship xd
-		fileIN >> sBuff; //index?
-		fileIN >> sBuff; //end time
+
+	case 0xCC0C: // [EndBGM]
+		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
+
+		buff16 = buffVS[1].size();
+		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write size of path
+		fileOUT << buffVS[1]; // write path
+
+		buff32 = timeToMiliSec(buffVS[2]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
 		break;
+
+	case 0xCC0D: // [EndRoll]
+		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
+
+		buff16 = buffVS[1].size();
+		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write size of path
+		fileOUT << buffVS[1]; // write path
+
+		buff32 = timeToMiliSec(buffVS[2]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
+		break;
+
+	case 0xCC0E: // [MoveSom]
+		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
+
+		buff8 = stoi(buffVS[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff8), sizeof(buff8)); // write intense of vibration(?)
+
+		buff32 = timeToMiliSec(buffVS[2]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
+		break;
+
 	default:
-		cout << "Error!\a\tUknown command!\n";
-		cout << "0x" << hex << cmd << "\n";
+		cout << "Error!\a\tSomething went wrong!\n";
+		cout << "line: " << line << "\n";
 		break;
 	}
 }
 
 bool makeBin()
 {
-	uint32_t header = 0x526F736553637269; //RoseScri
-	fileOUT.write(reinterpret_cast<const char*>(&header), sizeof(header));
+	fileOUT << "RoseScri";
+	uint32_t sizeOfFile = 0x00000000;
+	fileOUT.write(reinterpret_cast<const char*>(&sizeOfFile), sizeof(sizeOfFile)); // make place to write size of file after all
 
 	string line;
 	while (!fileIN.eof())
@@ -278,6 +326,11 @@ bool makeBin()
 		}
 	}
 	fileIN.close();
+
+	fileOUT.seekp(0, ios::end);
+	sizeOfFile = fileOUT.tellp(); // get size of file
+	fileOUT.seekp(0x8, ios::beg);
+	fileOUT.write(reinterpret_cast<const char*>(&sizeOfFile), sizeof(sizeOfFile)); // write size of file in place for it
 	fileOUT.close();
 	return true;
 }
