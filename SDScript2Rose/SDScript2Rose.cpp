@@ -115,93 +115,88 @@ uint32_t timeToMiliSec(string line)
 	return timems;
 }
 
-void codeLine(string line, unsigned short cmd)
+void codeLine(string line)
 {
-	string buffS; uint32_t buff32; uint16_t buff16; vector<string> buffVS;
-	switch (cmd)
+	string buffS; uint32_t buff32; uint16_t buff16; uint8_t buff8; vector<string> buffVS;
+	
+	buffVS = splitString(line, "\t");
+	buff16 = findCommand(buffVS[0]);
+	fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16));
+
+	switch (buff16)
 	{
-	case 0xCC01: //[SkipFRAME]
-		fileIN >> buffS;
-		buff32 = timeToMiliSec(splitString(buffS, "=")[1]);
-		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
-		break;
-	case 0xCC02: //[PlayBgm]
-		fileIN >> buffS;
-		buffVS = splitString(buffS, "\t");
+	case 0xCC01: // [SkipFRAME]
 		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
 		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
+		break;
+	
+	case 0xCC02: // [PlayBgm]
+		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
+		
 		buff16 = buffVS[1].size();
-		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write sizeof path
+		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write size of path
 		fileOUT << buffVS[1]; // write path
+		
 		buff32 = timeToMiliSec(buffVS[2]);
 		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
 		break;
-	case 0xCC03: //[CreateBG]
-		fileIN >> buffS;
-		buffVS = splitString(buffS, "\t");
+
+	case 0xCC03: // [CreateBG]
 		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
 		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
-		if (buffVS[1] == "BGS") {
-			buff16 = 0xBBBB;
-		}
-		else {
-			buff16 = 0xAAAA;
-		}
+
+		buff16 = ("BGS" == buffVS[1]) ? 0xBBBB : 0xAAAA;
 		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write BGS
+
 		buff16 = buffVS[2].size();
-		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(16));
+		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write size of path
+		fileOUT << buffVS[3]; // write path
+		
+		buff32 = timeToMiliSec(buffVS[4]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
+		break;
 
+	case 0xCC04: // [PrintText]
+		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
+		
+		buff16 = buffVS[1].size();
+		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write size of name
+		fileOUT << buffVS[1]; // write name
+
+		buff16 = buffVS[2].size();
+		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write size of text
+		fileOUT << buffVS[2]; // write text
+
+		buff32 = timeToMiliSec(buffVS[3]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
+		break;
+	case 0xCC05: // [PlayVoice]
+		buff32 = timeToMiliSec(splitString(buffVS[0], "=")[1]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write start time
+
+		buff16 = buffVS[1].size();
+		fileOUT.write(reinterpret_cast<const char*>(&buff16), sizeof(buff16)); // write size of path
+		fileOUT << buffVS[1]; // write path
+
+		buff8 = (buffVS[2] == "1") ? 1 : 0;
+		fileOUT.write(reinterpret_cast<const char*>(&buff8), sizeof(buff8)); // write if speeking person is male
+
+		fileOUT << buffVS[3]; // write short name of person
+		
+		buff32 = timeToMiliSec(buffVS[4]);
+		fileOUT.write(reinterpret_cast<const char*>(&buff32), sizeof(buff32)); // write end time
+		break;
+			
+	case 0xCC06: // [PlaySe]
+		
 
 		break;
-	case 0xCC04: //[PrintText]
-		getline(fileIN, sBuff);
-		printText(sBuff);
-		break;
-	case 0xCC05: //[PlayVoice]
-		fileIN >> sBuff; // path to voice
-		usBuff = sBuff.size();
-		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff)); //size of path
-		fileOUT << sBuff;
-
-		fileIN >> sBuff; // Mute male voices
-		usBuff = stoi(sBuff);
-		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff));
-
-		if ((int)sBuff.size() < 2) { //There is not always a variable. If there is no variable, it has no person name.
-			fileIN >> sBuff; // person
-			usBuff = sBuff.size();
-			fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff)); //size of name
-			fileOUT << sBuff;
-			fileIN >> sBuff; // end time
-		}
-		else {
-			//cout << "An exception was made in decodeLine()!\n";
-			//cout << "cmd: " << cmd << "\n";
-			//cout << "line: " << line << "\n";
-			usBuff = 0xFFFF;
-			fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff)); //info that there was nothing
-		}
-		iBuff = timeToMiliSec(sBuff);
-		fileOUT.write(reinterpret_cast<const char*>(&iBuff), sizeof(iBuff));
-		break;
-	case 0xCC06: //[PlaySe]
-		fileIN >> sBuff; // id or layer
-		usBuff = stoi(sBuff);
-		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff));
-
-		fileIN >> sBuff; // path to se
-		usBuff = sBuff.size();
-		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff)); //size of path
-		fileOUT << sBuff;
-
-		fileIN >> sBuff; // end time
-		iBuff = timeToMiliSec(sBuff);
-		fileOUT.write(reinterpret_cast<const char*>(&iBuff), sizeof(iBuff));
-		break;
-	case 0xCC07: //[Next]
+	case 0xCC07: // [Next]
 		//noting
 		break;
-	case 0xCC08: //[PlayMovie]
+	case 0xCC08: // [PlayMovie]
 		fileIN >> sBuff; // path to movie
 		usBuff = sBuff.size();
 		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff)); //size of path
@@ -215,7 +210,7 @@ void codeLine(string line, unsigned short cmd)
 		iBuff = timeToMiliSec(sBuff);
 		fileOUT.write(reinterpret_cast<const char*>(&iBuff), sizeof(iBuff));
 		break;
-	case 0xCC09: //[BlackFade]
+	case 0xCC09: // [BlackFade]
 		fileIN >> sBuff; // IN/OUT
 		usBuff = fadeIO(sBuff);
 		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff));
@@ -224,7 +219,7 @@ void codeLine(string line, unsigned short cmd)
 		iBuff = timeToMiliSec(sBuff);
 		fileOUT.write(reinterpret_cast<const char*>(&iBuff), sizeof(iBuff));
 		break;
-	case 0xCC0A: //[WhiteFade]
+	case 0xCC0A: // [WhiteFade]
 		fileIN >> sBuff; // IN/OUT
 		usBuff = fadeIO(sBuff);
 		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff));
@@ -233,11 +228,11 @@ void codeLine(string line, unsigned short cmd)
 		iBuff = timeToMiliSec(sBuff);
 		fileOUT.write(reinterpret_cast<const char*>(&iBuff), sizeof(iBuff));
 		break;
-	case 0xCC0B: //[SetSELECT]
+	case 0xCC0B: // [SetSELECT]
 		getline(fileIN, sBuff);
 		setSelect(sBuff);
 		break;
-	case 0xCC0C: //[EndBGM]???
+	case 0xCC0C: // [EndBGM]???
 		fileIN >> sBuff; // path to bgm
 		usBuff = sBuff.size();
 		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff)); //size of path
@@ -247,7 +242,7 @@ void codeLine(string line, unsigned short cmd)
 		iBuff = timeToMiliSec(sBuff);
 		fileOUT.write(reinterpret_cast<const char*>(&iBuff), sizeof(iBuff));
 		break;
-	case 0xCC0D: //[EndRoll]??? - at the end of each episode only?
+	case 0xCC0D: // [EndRoll]??? - at the end of each episode only?
 		fileIN >> sBuff; // path to movie
 		usBuff = sBuff.size();
 		fileOUT.write(reinterpret_cast<const char*>(&usBuff), sizeof(usBuff)); //size of path
@@ -257,7 +252,7 @@ void codeLine(string line, unsigned short cmd)
 		iBuff = timeToMiliSec(sBuff);
 		fileOUT.write(reinterpret_cast<const char*>(&iBuff), sizeof(iBuff));
 		break;
-	case 0xCC0E: //[MoveSom] //Maybe it will be useful for censorship xd
+	case 0xCC0E: // [MoveSom] //Maybe it will be useful for censorship xd
 		fileIN >> sBuff; //index?
 		fileIN >> sBuff; //end time
 		break;
@@ -273,22 +268,13 @@ bool makeBin()
 	uint32_t header = 0x526F736553637269; //RoseScri
 	fileOUT.write(reinterpret_cast<const char*>(&header), sizeof(header));
 
-	string line; uint16_t cmd; uint32_t cmdTime;
+	string line;
 	while (!fileIN.eof())
 	{
-		fileIN >> line;
+		getline(fileIN, line);
 		//cout << line << "\n";
 		if (line.size() > 2) {
-			//find cmd
-			cmd = findCommand(line);
-			fileOUT.write(reinterpret_cast<const char*>(&cmd), sizeof(cmd));
-
-			//cmdTime
-			cmdTime = timeToMiliSec(splitString(line, "=")[1]);
-			fileOUT.write(reinterpret_cast<const char*>(&cmdTime), sizeof(cmdTime));
-
-			//rest of the line
-			codeLine(line, cmd);
+			codeLine(line);
 		}
 	}
 	fileIN.close();
